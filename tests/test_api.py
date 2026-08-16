@@ -77,3 +77,39 @@ def test_essl_push_endpoint(client: TestClient):
         },
     )
     assert response.json()["inserted"] == 1
+
+
+def test_import_page_and_files(client: TestClient):
+    page = client.get("/import")
+    assert page.status_code == 200
+    assert "Import IN / OUT punches" in page.text
+
+    sample = client.get("/import/sample/punches.csv")
+    assert sample.status_code == 200
+    assert "biometric_user_id" in sample.text
+
+    staff = (
+        "emp_code,name,biometric_user_id,department,designation,basic,hra,other_allowance\n"
+        "RMP009,Kiran Joshi,1009,Operations,Staff,12000,4000,1000\n"
+    )
+    employees = client.post(
+        "/import/employees",
+        files={"file": ("staff.csv", staff, "text/csv")},
+        follow_redirects=True,
+    )
+    assert employees.status_code == 200
+    assert "Employees saved" in employees.text
+
+    punches = (
+        "User ID,Date,Time,Status\n"
+        "1009,2026-08-03,09:00:00,IN\n"
+        "1009,2026-08-03,18:00:00,OUT\n"
+    )
+    imported = client.post(
+        "/import/punches",
+        files={"file": ("punches.csv", punches, "text/csv")},
+        follow_redirects=True,
+    )
+    assert imported.status_code == 200
+    assert "Punches saved" in imported.text
+    assert "Inserted 2" in imported.text

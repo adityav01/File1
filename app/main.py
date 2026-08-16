@@ -3,18 +3,30 @@ from __future__ import annotations
 from calendar import monthrange
 from datetime import date, datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.db import get_db, get_settings, init_db, set_setting
-from app.essl_client import EsslSoapClient, parse_csv, punches_from_push_payload
+from app.essl_client import (
+    EsslSoapClient,
+    parse_employee_upload,
+    parse_upload,
+    punches_from_push_payload,
+)
 from app.seed import seed_demo_data
-from app.services import attendance_for_month, month_bounds, run_payroll, store_punches
+from app.services import (
+    attendance_for_month,
+    month_bounds,
+    run_payroll,
+    store_employees,
+    store_punches,
+)
 
 ROOT = Path(__file__).resolve().parent
 
@@ -148,16 +160,111 @@ def sync_essl(
         password=settings.get("soap_password", ""),
         serial_number=settings.get("device_serial", ""),
     )
-    store_punches(records, "essl_soap")
-    return RedirectResponse("/punches", status_code=303)
+    inserted, skipped = store_punches(records, "essl_soap")
+    return RedirectResponse(
+        f"/import?kind=punches&parsed={len(records)}&inserted={inserted}&skipped={skipped}",
+        status_code=303,
+    )
+
+
+PUNCH_SAMPLE = """biometric_user_id,punch_time,direction,device_serial
+1001,2026-08-01 09:04:00,IN,ESSL-RMP-01
+1001,2026-08-01 18:07:00,OUT,ESSL-RMP-01
+1002,2026-08-01 09:08:00,IN,ESSL-RMP-01
+1002,2026-08-01 18:11:00,OUT,ESSL-RMP-01
+"""
+
+EMPLOYEE_SAMPLE = """emp_code,name,biometric_user_id,department,designation,basic,hra,other_allowance
+RMP001,Anita Sharma,1001,Operations,Supervisor,18000,7200,2800
+RMP002,Rahul Verma,1002,Operations,Technician,15000,6000,2000
+"""
+
+
+@app.get("/import", response_class=HTMLResponse)
+def import_page(
+    request: Request,
+    kind: str | None = None,
+    parsed: int | None = None,
+    inserted: int | None = None,
+    skipped: int | None = None,
+    error: str | None = None,
+    preview: str | None = None,
+):
+    return render(
+        request,
+        "import.html",
+        kind=kind,
+        parsed=parsed,
+        inserted=inserted,
+        skipped=skipped,
+        error=error,
+        preview_rows=(preview.split("||") if preview else []),
+    )
+
+
+@app.get("/import/sample/punches.csv")
+def punch_sample():
+    return PlainTextResponse(PUNCH_SAMPLE, media_type="text/csv")
+
+
+@app.get("/import/sample/employees.csv")
+def employee_sample():
+    return PlainTextResponse(EMPLOYEE_SAMPLE, media_type="text/csv")
+
+
+def _preview(records) -> str:
+    lines = []
+    for record in records[:8]:
+        lines.append(
+            f"{record.biometric_user_id} · {record.punch_time.strftime('%Y-%m-%d %H:%M:%S')} · {record.direction}"
+        )
+    return "||".join(lines)
+
+
+@app.post("/import/punches")
+async def import_punches(file: UploadFile = File(...)):
+    data = await file.read()
+    filename = file.filename or "punches.csv"
+    try:
+        records = parse_upload(filename, data)
+    except Exception as exc:
+        return RedirectResponse(f"/import?error={quote(str(exc))}", status_code=303)
+    if not records:
+        return RedirectResponse(
+            "/import?error=" + quote("No punch rows found. Use User ID, date/time, and IN/OUT columns."),
+            status_code=303,
+        )
+    inserted, skipped = store_punches(records, "import")
+    preview = _preview(records)
+    return RedirectResponse(
+        f"/import?kind=punches&parsed={len(records)}&inserted={inserted}&skipped={skipped}&preview={quote(preview)}",
+        status_code=303,
+    )
+
+
+@app.post("/import/employees")
+async def import_staff(file: UploadFile = File(...)):
+    data = await file.read()
+    filename = file.filename or "employees.csv"
+    try:
+        rows = parse_employee_upload(filename, data)
+    except Exception as exc:
+        return RedirectResponse(f"/import?error={quote(str(exc))}", status_code=303)
+    if not rows:
+        return RedirectResponse(
+            "/import?error=" + quote("No employee rows found. Need emp_code, name, and biometric_user_id."),
+            status_code=303,
+        )
+    inserted, skipped = store_employees(rows)
+    return RedirectResponse(
+        f"/import?kind=employees&parsed={len(rows)}&inserted={inserted}&skipped={skipped}",
+        status_code=303,
+    )
 
 
 @app.post("/punches/import")
 async def import_csv(file: UploadFile = File(...)):
-    content = (await file.read()).decode("utf-8-sig")
-    records = parse_csv(content)
-    store_punches(records, "csv")
-    return RedirectResponse("/punches", status_code=303)
+    return await import_punches(file)
 
 
 @app.post("/punches/demo")
@@ -169,7 +276,7 @@ def load_demo():
 @app.post("/api/essl/push")
 def essl_push(payload: dict):
     records = list(punches_from_push_payload(payload))
-    inserted = store_punches(records, "essl_push")
+    inserted, _skipped = store_punches(records, "essl_push")
     return {"inserted": inserted}
 
 

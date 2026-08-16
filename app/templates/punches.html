@@ -9,10 +9,11 @@
     <label>To <input type="date" name="to_date" value="{{ today.isoformat() }}"></label>
     <button type="submit">Sync GetTransactionsLog</button>
   </form>
-  <form method="post" action="/punches/import" enctype="multipart/form-data">
-    <h2>Import CSV</h2>
+  <form method="post" action="/import/punches" enctype="multipart/form-data">
+    <h2>Import CSV / Excel</h2>
+    <p>Or use the full <a href="/import">Import page</a>.</p>
     <p>Columns: <code>biometric_user_id,punch_time,direction</code></p>
-    <input type="file" name="file" accept=".csv,text/csv" required>
+    <input type="file" name="file" accept=".csv,.xlsx,.xls,text/csv" required>
     <button type="submit">Import file</button>
   </form>
 </div>

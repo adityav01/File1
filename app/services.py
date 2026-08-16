@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from datetime import date, datetime
 
 from app.attendance import pair_daily_attendance
@@ -8,8 +9,9 @@ from app.essl_client import PunchRecord
 from app.payroll import SalaryStructure, calculate_payroll_line
 
 
-def store_punches(records: list[PunchRecord], source: str) -> int:
+def store_punches(records: list[PunchRecord], source: str) -> tuple[int, int]:
     inserted = 0
+    skipped = 0
     with get_db() as conn:
         for record in records:
             try:
@@ -29,9 +31,40 @@ def store_punches(records: list[PunchRecord], source: str) -> int:
                     ),
                 )
                 inserted += 1
-            except Exception:
-                continue
-    return inserted
+            except sqlite3.IntegrityError:
+                skipped += 1
+    return inserted, skipped
+
+
+def store_employees(rows: list[dict[str, str]]) -> tuple[int, int]:
+    inserted = 0
+    skipped = 0
+    with get_db() as conn:
+        for row in rows:
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO employees(
+                        emp_code, name, biometric_user_id, department, designation,
+                        basic, hra, other_allowance, join_date, active
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    """,
+                    (
+                        row["emp_code"],
+                        row["name"],
+                        row["biometric_user_id"],
+                        row["department"],
+                        row["designation"],
+                        float(row["basic"] or 0),
+                        float(row["hra"] or 0),
+                        float(row["other_allowance"] or 0),
+                        date.today().isoformat(),
+                    ),
+                )
+                inserted += 1
+            except sqlite3.IntegrityError:
+                skipped += 1
+    return inserted, skipped
 
 
 def load_punches(from_date: date, to_date: date) -> list[tuple[str, datetime, str]]:

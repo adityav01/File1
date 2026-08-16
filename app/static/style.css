@@ -71,6 +71,9 @@ th, td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid var
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; align-items: end; }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .warn { color: #9a3412; }
+.ok { border-color: #3f6212; }
+.drop { min-height: 16rem; }
+.drop input[type=file] { margin: 0.8rem 0; }
 .inline { display: flex; gap: 0.8rem; align-items: end; flex-wrap: wrap; }
 .inline label { min-width: 180px; }
 .runs { padding-left: 1.1rem; }

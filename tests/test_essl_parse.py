@@ -49,6 +49,32 @@ def test_parse_csv_headers():
     assert records[0].biometric_user_id == "1002"
 
 
+def test_parse_essl_date_and_time_columns():
+    csv_text = "User ID,Date,Time,Status\n1008,01-08-2026,09:04:00,IN\n"
+    records = parse_csv(csv_text)
+    assert records[0].biometric_user_id == "1008"
+    assert records[0].punch_time == datetime(2026, 8, 1, 9, 4, 0)
+    assert records[0].direction == "IN"
+
+
+def test_parse_xlsx_punches():
+    import io
+
+    from openpyxl import Workbook
+
+    from app.essl_client import parse_upload
+
+    book = Workbook()
+    sheet = book.active
+    sheet.append(["EmpCode", "DateTime", "Direction"])
+    sheet.append(["1009", "2026-08-02 18:15:00", "OUT"])
+    buffer = io.BytesIO()
+    book.save(buffer)
+    records = parse_upload("essl.xlsx", buffer.getvalue())
+    assert records[0].biometric_user_id == "1009"
+    assert records[0].direction == "OUT"
+
+
 def test_push_payload():
     records = list(
         punches_from_push_payload(

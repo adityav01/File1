@@ -19,12 +19,12 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Open http://127.0.0.1:8000
+Open **http://127.0.0.1:8000/import**
 
-1. **eSSL connection** — SOAP URL, API user, password, device serial.
-2. **Employees** — biometric User ID must match the device.
-3. **In / Out punches** — sync a date range (or load demo data from Overview).
-4. **Payroll** — pick a month and run the cycle.
+1. Download a sample file or export CSV/Excel from eTimeTrackLite.
+2. Import employees (User ID must match the device).
+3. Import punches (IN/OUT).
+4. Open Attendance, then run Payroll.
 
 Typical SOAP URL:
 

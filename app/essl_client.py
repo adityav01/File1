@@ -141,49 +141,134 @@ def parse_soap_response(xml_text: str) -> list[PunchRecord]:
     return parse_str_data_list(node.text)
 
 
-def parse_csv(content: str) -> list[PunchRecord]:
-    reader = csv.DictReader(io.StringIO(content))
-    if reader.fieldnames:
-        rows = list(reader)
-        records: list[PunchRecord] = []
-        for row in rows:
-            lowered = {str(k).strip().lower(): (v or "").strip() for k, v in row.items() if k}
-            user_id = (
-                lowered.get("biometric_user_id")
-                or lowered.get("userid")
-                or lowered.get("user_id")
-                or lowered.get("empcode")
-                or lowered.get("emp_code")
-                or lowered.get("employeecode")
-            )
-            punch_time = (
-                lowered.get("punch_time")
-                or lowered.get("logtime")
-                or lowered.get("datetime")
-                or lowered.get("date_time")
-            )
-            if not user_id or not punch_time:
-                continue
-            records.append(
-                PunchRecord(
-                    biometric_user_id=user_id,
-                    punch_time=parse_punch_time(punch_time),
-                    direction=normalize_direction(
-                        lowered.get("direction") or lowered.get("inout") or lowered.get("status")
-                    ),
-                    device_serial=lowered.get("device_serial") or lowered.get("serial") or "",
-                    raw=",".join(row.values()),
-                )
-            )
-        if records:
-            return records
+def _norm_key(key: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(key).lower())
 
-    records = []
-    for line in content.splitlines()[1:] if "," in content.splitlines()[0] else content.splitlines():
+
+def _cell_text(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    return str(value).strip()
+
+
+def _first(row: dict[str, str], *keys: str) -> str:
+    for key in keys:
+        if row.get(key):
+            return row[key]
+    return ""
+
+
+def punch_from_row(row: dict[str, str]) -> PunchRecord | None:
+    user_id = _first(
+        row,
+        "biometricuserid",
+        "userid",
+        "userno",
+        "empcode",
+        "employeecode",
+        "enrollnumber",
+        "enrollno",
+    )
+    punch_time = _first(row, "punchtime", "logtime", "datetime", "dateandtime", "punchdatetime")
+    if not punch_time and row.get("date"):
+        date_part = row["date"].split()[0]
+        time_part = row.get("time") or "00:00:00"
+        punch_time = f"{date_part} {time_part}"
+    if not user_id or not punch_time:
+        return None
+    return PunchRecord(
+        biometric_user_id=user_id,
+        punch_time=parse_punch_time(punch_time),
+        direction=normalize_direction(_first(row, "direction", "inout", "status", "type")),
+        device_serial=_first(row, "deviceserial", "serial", "devicename"),
+        raw=",".join(row.values()),
+    )
+
+
+def employee_from_row(row: dict[str, str]) -> dict[str, str] | None:
+    emp_code = _first(row, "empcode", "employeecode", "code")
+    name = _first(row, "name", "employeename")
+    user_id = _first(row, "biometricuserid", "userid", "userno", "enrollnumber")
+    if not emp_code or not name or not user_id:
+        return None
+    return {
+        "emp_code": emp_code,
+        "name": name,
+        "biometric_user_id": user_id,
+        "department": _first(row, "department", "dept") or "Operations",
+        "designation": _first(row, "designation", "role") or "Staff",
+        "basic": _first(row, "basic") or "0",
+        "hra": _first(row, "hra") or "0",
+        "other_allowance": _first(row, "otherallowance", "other", "allowance") or "0",
+    }
+
+
+def _rows_from_csv(content: str) -> list[dict[str, str]]:
+    sample = content[:4096]
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",\t;") if sample.strip() else csv.excel
+    except csv.Error:
+        dialect = csv.excel
+    reader = csv.DictReader(io.StringIO(content), dialect=dialect)
+    if not reader.fieldnames:
+        return []
+    rows = []
+    for raw in reader:
+        rows.append({_norm_key(k): _cell_text(v) for k, v in raw.items() if k})
+    return rows
+
+
+def _rows_from_xlsx(data: bytes) -> list[dict[str, str]]:
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    sheet = workbook.active
+    rows_iter = sheet.iter_rows(values_only=True)
+    header = next(rows_iter, None)
+    if not header:
+        return []
+    keys = [_norm_key(_cell_text(col) or f"col{index}") for index, col in enumerate(header)]
+    rows = []
+    for values in rows_iter:
+        row = {keys[i]: _cell_text(values[i] if i < len(values) else "") for i in range(len(keys))}
+        if any(row.values()):
+            rows.append(row)
+    return rows
+
+
+def parse_csv(content: str) -> list[PunchRecord]:
+    records = [record for row in _rows_from_csv(content) if (record := punch_from_row(row))]
+    if records:
+        return records
+    parsed = []
+    lines = content.splitlines()
+    start = 1 if lines and "," in lines[0] and not _looks_like_datetime(lines[0].split(",")[1] if "," in lines[0] else "") else 0
+    for line in lines[start:]:
         record = parse_log_line(line)
         if record:
-            records.append(record)
-    return records
+            parsed.append(record)
+    return parsed
+
+
+def parse_employees_csv(content: str) -> list[dict[str, str]]:
+    return [row for item in _rows_from_csv(content) if (row := employee_from_row(item))]
+
+
+def parse_upload(filename: str, data: bytes) -> list[PunchRecord]:
+    name = filename.lower()
+    if name.endswith(".xlsx") or name.endswith(".xls"):
+        return [record for row in _rows_from_xlsx(data) if (record := punch_from_row(row))]
+    text = data.decode("utf-8-sig")
+    return parse_csv(text)
+
+
+def parse_employee_upload(filename: str, data: bytes) -> list[dict[str, str]]:
+    name = filename.lower()
+    if name.endswith(".xlsx") or name.endswith(".xls"):
+        return [row for item in _rows_from_xlsx(data) if (row := employee_from_row(item))]
+    return parse_employees_csv(data.decode("utf-8-sig"))
 
 
 class EsslSoapClient:

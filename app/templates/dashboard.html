@@ -14,10 +14,11 @@
 <section class="panel">
   <h2>Start here</h2>
   <ol>
-    <li>Enter the eTimeTrackLite / eBioServer SOAP URL, login, and device serial under <a href="/settings">eSSL connection</a>.</li>
-    <li>Add employees with the same biometric User ID shown on the device.</li>
-    <li>Sync punches, or import a CSV, then open Attendance and run Payroll.</li>
+    <li><a href="/import">Import</a> a punch CSV/Excel from eSSL, or a staff list.</li>
+    <li>Check <a href="/employees">Employees</a> so each biometric User ID is mapped.</li>
+    <li>Open Attendance, then run Payroll.</li>
   </ol>
+  <p><a href="/import"><button type="button">Open import page</button></a></p>
   <form method="post" action="/punches/demo">
     <button type="submit">Load demo RMP staff and punches</button>
   </form>
