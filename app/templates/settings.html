@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>eSSL connection</h1>
+<p class="lede">Uses the eTimeTrackLite SOAP method <code>GetTransactionsLog</code>. Typical URL: <code>http://SERVER:PORT/iclock/WebAPIService.asmx</code> or eBioServer <code>/WebAPIService.asmx</code>.</p>
+<form method="post" action="/settings">
+  <label>Company <input name="company_name" value="{{ settings.company_name }}"></label>
+  <label>SOAP URL <input name="soap_url" value="{{ settings.soap_url }}"></label>
+  <label>API username <input name="soap_username" value="{{ settings.soap_username }}"></label>
+  <label>API password <input name="soap_password" type="password" placeholder="Leave blank to keep current"></label>
+  <label>Device serial <input name="device_serial" value="{{ settings.device_serial }}" placeholder="Leave blank for all devices"></label>
+  <label>Shift start <input name="shift_start" value="{{ settings.shift_start }}"></label>
+  <label>Shift end <input name="shift_end" value="{{ settings.shift_end }}"></label>
+  <label>Grace minutes <input name="grace_minutes" value="{{ settings.grace_minutes }}"></label>
+  <label>OT rate / hour <input name="ot_rate_per_hour" value="{{ settings.ot_rate_per_hour }}"></label>
+  <label>Standard working days <input name="standard_working_days" value="{{ settings.standard_working_days }}"></label>
+  <button type="submit">Save connection</button>
+</form>
+<section class="panel">
+  <h2>Device notes</h2>
+  <ul>
+    <li>The biometric machine must already be enrolled in eSSL software (eTimeTrackLite / eBioServer).</li>
+    <li>This app polls punch logs; it does not flash firmware on the terminal.</li>
+    <li>If the device can push JSON, POST to <code>/api/essl/push</code> with <code>UserId</code>, <code>LogTime</code>, and <code>Type</code> IN/OUT.</li>
+  </ul>
+</section>
+{% endblock %}

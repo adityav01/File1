@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ settings.company_name }} Payroll</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <aside>
+    <p class="brand">{{ settings.company_name }}</p>
+    <p class="brand-sub">Biometric payroll</p>
+    <nav>
+      <a href="/">Overview</a>
+      <a href="/employees">Employees</a>
+      <a href="/punches">In / Out punches</a>
+      <a href="/attendance">Attendance</a>
+      <a href="/payroll">Payroll</a>
+      <a href="/settings">eSSL connection</a>
+    </nav>
+  </aside>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
