@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>RMP monthly payroll</h1>
+<p class="lede">Collect biometric in/out from the eSSL device, map User IDs to staff, then run salary for the month.</p>
+<section class="cards">
+  <article><span>Active staff</span><strong>{{ employee_count }}</strong></article>
+  <article><span>Stored punches</span><strong>{{ punch_count }}</strong></article>
+  <article><span>Last punch</span><strong>{{ last_punch or "—" }}</strong></article>
+  <article><span>Payroll runs</span><strong>{{ payroll_runs }}</strong></article>
+</section>
+{% if unmatched %}
+<p class="warn">{{ unmatched }} biometric User ID(s) are not mapped to an employee. Map them on the Employees page.</p>
+{% endif %}
+<section class="panel">
+  <h2>Start here</h2>
+  <ol>
+    <li>Enter the eTimeTrackLite / eBioServer SOAP URL, login, and device serial under <a href="/settings">eSSL connection</a>.</li>
+    <li>Add employees with the same biometric User ID shown on the device.</li>
+    <li>Sync punches, or import a CSV, then open Attendance and run Payroll.</li>
+  </ol>
+  <form method="post" action="/punches/demo">
+    <button type="submit">Load demo RMP staff and punches</button>
+  </form>
+</section>
+{% endblock %}

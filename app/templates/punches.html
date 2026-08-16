@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>In / Out punches</h1>
+<p class="lede">Showing {{ year }}-{{ "%02d"|format(month) }}. Sync from eSSL SOAP, import CSV, or receive device push at <code>/api/essl/push</code>.</p>
+<div class="split">
+  <form method="post" action="/punches/sync">
+    <h2>Pull from eSSL</h2>
+    <label>From <input type="date" name="from_date" value="{{ today.replace(day=1).isoformat() }}"></label>
+    <label>To <input type="date" name="to_date" value="{{ today.isoformat() }}"></label>
+    <button type="submit">Sync GetTransactionsLog</button>
+  </form>
+  <form method="post" action="/punches/import" enctype="multipart/form-data">
+    <h2>Import CSV</h2>
+    <p>Columns: <code>biometric_user_id,punch_time,direction</code></p>
+    <input type="file" name="file" accept=".csv,text/csv" required>
+    <button type="submit">Import file</button>
+  </form>
+</div>
+<table>
+  <thead>
+    <tr><th>Time</th><th>Emp</th><th>User ID</th><th>Direction</th><th>Device</th><th>Source</th></tr>
+  </thead>
+  <tbody>
+    {% for p in punches %}
+    <tr>
+      <td>{{ p.punch_time }}</td>
+      <td>{{ p.name or "—" }}</td>
+      <td>{{ p.biometric_user_id }}</td>
+      <td>{{ p.direction }}</td>
+      <td>{{ p.device_serial }}</td>
+      <td>{{ p.source }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

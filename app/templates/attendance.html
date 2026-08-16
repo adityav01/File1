@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Daily attendance</h1>
+<p class="lede">First IN and last OUT for {{ year }}-{{ "%02d"|format(month) }}. Incomplete days (single punch) do not count as present for payroll.</p>
+<table>
+  <thead>
+    <tr><th>Date</th><th>Emp</th><th>Name</th><th>In</th><th>Out</th><th>Hours</th><th>OT</th><th>Late</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.day.work_date }}</td>
+      <td>{{ row.emp_code }}</td>
+      <td>{{ row.name }}</td>
+      <td>{{ row.day.first_in.strftime("%H:%M") if row.day.first_in else "—" }}</td>
+      <td>{{ row.day.last_out.strftime("%H:%M") if row.day.last_out else "—" }}</td>
+      <td>{{ row.day.worked_hours }}</td>
+      <td>{{ row.day.ot_hours }}</td>
+      <td>{{ "Yes" if row.day.late else "" }}</td>
+      <td>{{ "Incomplete" if row.day.incomplete else "OK" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

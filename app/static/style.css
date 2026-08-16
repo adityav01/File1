@@ -1,0 +1,81 @@
+:root {
+  --ink: #1b2430;
+  --muted: #5c6b7a;
+  --paper: #f4efe6;
+  --panel: #fffdf8;
+  --line: #d8cfc0;
+  --accent: #b45309;
+  --navy: #16324f;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  color: var(--ink);
+  background: var(--paper);
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+aside {
+  background: var(--navy);
+  color: #f4efe6;
+  padding: 1.6rem 1.2rem;
+}
+.brand { font-size: 1.4rem; margin: 0; letter-spacing: 0.08em; }
+.brand-sub { margin: 0.2rem 0 1.5rem; color: #c9b8a0; }
+nav a {
+  display: block;
+  color: #f4efe6;
+  text-decoration: none;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #2a4a6b;
+}
+main { padding: 2rem 2.2rem 3rem; }
+h1 { margin-top: 0; font-weight: 600; }
+.lede { color: var(--muted); max-width: 46rem; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.8rem;
+  margin: 1.4rem 0;
+}
+.cards article, .panel, form, table {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.cards article { padding: 1rem; }
+.cards span { display: block; color: var(--muted); font-size: 0.9rem; }
+.cards strong { font-size: 1.3rem; }
+.panel, form { padding: 1rem 1.1rem; margin: 1rem 0; }
+label { display: block; margin: 0.45rem 0; }
+input, button {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  width: 100%;
+}
+button {
+  background: var(--accent);
+  color: white;
+  border: 0;
+  margin-top: 0.7rem;
+  cursor: pointer;
+  width: auto;
+  padding: 0.5rem 0.9rem;
+}
+table { width: 100%; border-collapse: collapse; overflow: hidden; }
+th, td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; align-items: end; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.warn { color: #9a3412; }
+.inline { display: flex; gap: 0.8rem; align-items: end; flex-wrap: wrap; }
+.inline label { min-width: 180px; }
+.runs { padding-left: 1.1rem; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86em; }
+@media (max-width: 800px) {
+  body { grid-template-columns: 1fr; }
+  .split { grid-template-columns: 1fr; }
+}

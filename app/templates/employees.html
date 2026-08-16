@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Employees</h1>
+<p class="lede">The biometric User ID must match the eSSL device (often called Emp Code / User ID on the terminal).</p>
+<form class="grid" method="post" action="/employees">
+  <label>Emp code <input name="emp_code" required placeholder="RMP001"></label>
+  <label>Name <input name="name" required></label>
+  <label>Biometric User ID <input name="biometric_user_id" required placeholder="1001"></label>
+  <label>Department <input name="department" value="Operations"></label>
+  <label>Designation <input name="designation" value="Staff"></label>
+  <label>Basic <input name="basic" type="number" step="0.01" value="15000"></label>
+  <label>HRA <input name="hra" type="number" step="0.01" value="6000"></label>
+  <label>Other allowance <input name="other_allowance" type="number" step="0.01" value="2000"></label>
+  <button type="submit">Save employee</button>
+</form>
+<table>
+  <thead>
+    <tr><th>Code</th><th>Name</th><th>User ID</th><th>Dept</th><th>Basic</th><th>HRA</th><th>Other</th></tr>
+  </thead>
+  <tbody>
+    {% for e in employees %}
+    <tr>
+      <td>{{ e.emp_code }}</td>
+      <td>{{ e.name }}</td>
+      <td>{{ e.biometric_user_id }}</td>
+      <td>{{ e.department }}</td>
+      <td>{{ "%.2f"|format(e.basic) }}</td>
+      <td>{{ "%.2f"|format(e.hra) }}</td>
+      <td>{{ "%.2f"|format(e.other_allowance) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
